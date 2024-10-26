@@ -9,3 +9,5 @@ export interface AssetImage {
     usageCount: number;
     bitmap: ImageBitmap; // Essential for efficient processing in Web Workers
 }
+
+export type AlgorithmType = 'ColorMatch' | 'HistogramMatch' | 'PatternMatch' | 'RotateMatch';

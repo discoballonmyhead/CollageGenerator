@@ -1,7 +1,11 @@
+// src/components/CanvasDisplay.tsx
+
 import React, { useEffect, useRef, useState } from 'react';
-import { AssetImage } from '../types';
+import { AssetImage, AlgorithmType } from '../types';
 import { loadAssetImages, loadImage } from '../utils/imageProcessing';
 import heic2any from 'heic2any';
+
+// Import the worker as a module
 import ImageProcessorWorker from '../workers/imageProcessor.worker.ts?worker';
 
 interface Props {
@@ -10,6 +14,8 @@ interface Props {
     scaleFactor: number;
     processing: boolean;
     mosaicReady: boolean;
+    algorithm: AlgorithmType;
+    overlap: number;
     onProcessingChange: (isProcessing: boolean) => void;
     onMosaicReady: (isReady: boolean) => void;
 }
@@ -20,18 +26,23 @@ const CanvasDisplay: React.FC<Props> = ({
     scaleFactor,
     processing,
     mosaicReady,
+    algorithm,
+    overlap,
     onProcessingChange,
     onMosaicReady,
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [assets, setAssets] = useState<AssetImage[]>([]);
     const [uploadedImage, setUploadedImage] = useState<HTMLImageElement | null>(null);
-    const [progress, setProgress] = useState<number>(0);
+    const [progress, setProgress] = useState<number>(0); // Define progress state
 
     useEffect(() => {
+        // Preload assets on application load
         const preloadAssets = async () => {
             try {
                 const loadedAssets = await loadAssetImages();
+
+                // Assets are already loaded with bitmap in loadAssetImages
                 setAssets(loadedAssets);
             } catch (err) {
                 console.error('Error loading assets:', err);
@@ -43,10 +54,10 @@ const CanvasDisplay: React.FC<Props> = ({
 
     useEffect(() => {
         if (imageFile) {
-
+            // Reset states
             onMosaicReady(false);
             onProcessingChange(false);
-            setProgress(0);
+            setProgress(0); // Reset progress
 
             const loadAndDrawImage = async () => {
                 try {
@@ -81,10 +92,12 @@ const CanvasDisplay: React.FC<Props> = ({
         const canvas = canvasRef.current!;
         const ctx = canvas.getContext('2d')!;
 
+        // Apply scaling factor
         let scaledWidth = img.width * scaleFactor;
         let scaledHeight = img.height * scaleFactor;
 
-        const maxDimension = 4096;
+        // Limit the maximum dimensions
+        const maxDimension = 4096; // Adjust based on your requirements and testing
         if (scaledWidth > maxDimension || scaledHeight > maxDimension) {
             const scale = maxDimension / Math.max(scaledWidth, scaledHeight);
             scaledWidth *= scale;
@@ -109,7 +122,7 @@ const CanvasDisplay: React.FC<Props> = ({
         const canvas = canvasRef.current!;
         const { width, height } = canvas;
         const totalPixels = width * height;
-        const pixelThreshold = 10000000;
+        const pixelThreshold = 10000000; // 10 million pixels
 
         if (totalPixels > pixelThreshold) {
             const proceed = window.confirm(
@@ -121,18 +134,19 @@ const CanvasDisplay: React.FC<Props> = ({
         }
 
         onProcessingChange(true);
-        setProgress(0);
+        setProgress(0); // Reset progress
         const ctx = canvas.getContext('2d')!;
 
         const imageData = ctx.getImageData(0, 0, width, height);
 
+        // Initialize the worker
         const worker = new ImageProcessorWorker();
 
-        worker.postMessage({ imageData, assets, chunkSize });
+        worker.postMessage({ imageData, assets, chunkSize, algorithm, overlap });
 
         worker.onmessage = (event: MessageEvent) => {
             if (event.data.progress !== undefined) {
-                setProgress(event.data.progress);
+                setProgress(event.data.progress); // Update progress
                 return;
             }
 
@@ -146,7 +160,7 @@ const CanvasDisplay: React.FC<Props> = ({
         worker.onerror = (error) => {
             console.error('Worker error:', error);
             onProcessingChange(false);
-            setProgress(0);
+            setProgress(0); // Reset progress on error
             onMosaicReady(false);
             alert('An error occurred while processing the image. Please try again.');
             worker.terminate();
