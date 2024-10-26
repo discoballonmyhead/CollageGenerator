@@ -1,12 +1,20 @@
+// src/utils/imageProcessing.ts
+
+import { AssetImage } from '../types';
 import { RGB, getAverageColor, computeHistogram } from './colorUtils';
 
-export interface AssetImage {
-    src: string;
-    averageColors: RGB[];
-    histogram: number[];
-    usageCount: number;
+// Function to load an image from a source URL
+export function loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous'; // To avoid CORS issues
+        img.src = src;
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+    });
 }
 
+// Function to load all asset images dynamically
 export async function loadAssetImages(): Promise<AssetImage[]> {
     const images = import.meta.glob('../assets/icons/*.png', {
         eager: true,
@@ -15,6 +23,8 @@ export async function loadAssetImages(): Promise<AssetImage[]> {
 
     const assetPromises = Object.values(images).map(async (src: string) => {
         const img = await loadImage(src);
+        const bitmap = await createImageBitmap(img); // Create ImageBitmap
+
         const canvas = document.createElement('canvas');
         canvas.width = 128;
         canvas.height = 128;
@@ -38,18 +48,8 @@ export async function loadAssetImages(): Promise<AssetImage[]> {
         averageColors.push(overallAverage);
         const histogram = computeHistogram(imageData);
 
-        return { src, averageColors, histogram, usageCount: 0 };
+        return { src, averageColors, histogram, usageCount: 0, bitmap };
     });
 
     return Promise.all(assetPromises);
-}
-
-export function loadImage(src: string): Promise<HTMLImageElement> {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'Anonymous';
-        img.src = src;
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
-    });
 }

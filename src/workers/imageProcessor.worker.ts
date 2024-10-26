@@ -2,7 +2,7 @@
 
 import { getAverageColor, computeHistogram } from '../utils/colorUtils';
 import { findBestMatch } from '../utils/learningModel';
-import { AssetImage } from '../utils/imageProcessing';
+import { AssetImage } from '../types';
 
 interface ProcessImageData {
     imageData: ImageData;
@@ -33,6 +33,7 @@ self.onmessage = async (event: MessageEvent) => {
             const match = findBestMatch(averageColor, histogram, assets);
 
             if (match) {
+                // Use the bitmap from the asset
                 const assetBitmap = match.bitmap;
                 ctx.drawImage(
                     assetBitmap,

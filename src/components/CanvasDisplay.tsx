@@ -1,14 +1,12 @@
+// src/components/CanvasDisplay.tsx
+
 import React, { useEffect, useRef, useState } from 'react';
-import {
-    AssetImage,
-    loadAssetImages,
-    loadImage,
-} from '../utils/imageProcessing';
+import { AssetImage } from '../types';
+import { loadAssetImages, loadImage } from '../utils/imageProcessing';
 import heic2any from 'heic2any';
 
 // Import the worker as a module
 import ImageProcessorWorker from '../workers/imageProcessor.worker.ts?worker';
-
 
 interface Props {
     imageFile: File | null;
@@ -35,19 +33,18 @@ const CanvasDisplay: React.FC<Props> = ({
 
     useEffect(() => {
         // Preload assets on application load
-        loadAssetImages()
-            .then(async (loadedAssets) => {
-                // Convert asset images to ImageBitmap for use in Web Worker
-                const assetsWithBitmaps = await Promise.all(
-                    loadedAssets.map(async (asset) => {
-                        const image = await loadImage(asset.src);
-                        const bitmap = await createImageBitmap(image);
-                        return { ...asset, bitmap };
-                    })
-                );
-                setAssets(assetsWithBitmaps);
-            })
-            .catch((err) => console.error('Error loading assets:', err));
+        const preloadAssets = async () => {
+            try {
+                const loadedAssets = await loadAssetImages();
+
+                // Assets are already loaded with bitmap in loadAssetImages
+                setAssets(loadedAssets);
+            } catch (err) {
+                console.error('Error loading assets:', err);
+            }
+        };
+
+        preloadAssets();
     }, []);
 
     useEffect(() => {
@@ -56,7 +53,7 @@ const CanvasDisplay: React.FC<Props> = ({
             onMosaicReady(false);
             onProcessingChange(false);
 
-            const loadAndProcessImage = async () => {
+            const loadAndDrawImage = async () => {
                 try {
                     let file = imageFile;
 
@@ -81,7 +78,7 @@ const CanvasDisplay: React.FC<Props> = ({
                 }
             };
 
-            loadAndProcessImage();
+            loadAndDrawImage();
         }
     }, [imageFile, scaleFactor]);
 
@@ -116,12 +113,26 @@ const CanvasDisplay: React.FC<Props> = ({
             return;
         }
 
-        onProcessingChange(true);
         const canvas = canvasRef.current!;
+        const { width, height } = canvas;
+        const totalPixels = width * height;
+        const pixelThreshold = 10000000; // 10 million pixels
+
+        if (totalPixels > pixelThreshold) {
+            const proceed = window.confirm(
+                'Processing this image may take a long time and could slow down your browser. Do you want to proceed?'
+            );
+            if (!proceed) {
+                return;
+            }
+        }
+
+        onProcessingChange(true);
         const ctx = canvas.getContext('2d')!;
 
-        const { width, height } = canvas;
         const imageData = ctx.getImageData(0, 0, width, height);
+
+        // Initialize the worker
         const worker = new ImageProcessorWorker();
 
         worker.postMessage({ imageData, assets, chunkSize });
@@ -143,10 +154,17 @@ const CanvasDisplay: React.FC<Props> = ({
 
     const downloadImage = () => {
         const canvas = canvasRef.current!;
-        const link = document.createElement('a');
-        link.download = 'mosaic.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        canvas.toBlob((blob) => {
+            if (blob) {
+                const link = document.createElement('a');
+                link.download = 'mosaic.png';
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                URL.revokeObjectURL(link.href);
+            } else {
+                console.error('Failed to create blob for download.');
+            }
+        }, 'image/png');
     };
 
     return (
