@@ -1,5 +1,3 @@
-// src/utils/learningModel.ts
-
 import { RGB, colorDistance, histogramDistance } from './colorUtils';
 import { AssetImage } from '../types';
 

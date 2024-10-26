@@ -1,9 +1,6 @@
-// src/utils/imageProcessing.ts
-
 import { AssetImage } from '../types';
 import { RGB, getAverageColor, computeHistogram } from './colorUtils';
 
-// Function to load an image from a source URL
 export function loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -14,7 +11,6 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
     });
 }
 
-// Function to load all asset images dynamically
 export async function loadAssetImages(): Promise<AssetImage[]> {
     const images = import.meta.glob('../assets/icons/*.png', {
         eager: true,
@@ -23,7 +19,7 @@ export async function loadAssetImages(): Promise<AssetImage[]> {
 
     const assetPromises = Object.values(images).map(async (src: string) => {
         const img = await loadImage(src);
-        const bitmap = await createImageBitmap(img); // Create ImageBitmap
+        const bitmap = await createImageBitmap(img);
 
         const canvas = document.createElement('canvas');
         canvas.width = 128;
@@ -34,7 +30,6 @@ export async function loadAssetImages(): Promise<AssetImage[]> {
         const imageData = ctx.getImageData(0, 0, 128, 128);
         const averageColors: RGB[] = [];
 
-        // Divide into 9 partitions (3x3 grid)
         const partitionSize = Math.ceil(128 / 3);
         for (let y = 0; y < 128; y += partitionSize) {
             for (let x = 0; x < 128; x += partitionSize) {

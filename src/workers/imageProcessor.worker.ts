@@ -18,8 +18,10 @@ self.onmessage = async (event: MessageEvent) => {
     const ctx = offScreenCanvas.getContext('2d')!;
     ctx.putImageData(imageData, 0, 0);
 
-    // Initialize or reset usage counts
     assets.forEach((asset) => (asset.usageCount = 0));
+
+    let processedChunks = 0;
+    const totalChunks = Math.ceil(width / chunkSize) * Math.ceil(height / chunkSize);
 
     for (let y = 0; y < height; y += chunkSize) {
         for (let x = 0; x < width; x += chunkSize) {
@@ -32,8 +34,7 @@ self.onmessage = async (event: MessageEvent) => {
 
             const match = findBestMatch(averageColor, histogram, assets);
 
-            if (match) {
-                // Use the bitmap from the asset
+            if (match && match.bitmap) {
                 const assetBitmap = match.bitmap;
                 ctx.drawImage(
                     assetBitmap,
@@ -47,10 +48,13 @@ self.onmessage = async (event: MessageEvent) => {
                     sh
                 );
             } else {
-                // Fill with average color
                 ctx.fillStyle = `rgb(${averageColor.r}, ${averageColor.g}, ${averageColor.b})`;
                 ctx.fillRect(x, y, sw, sh);
             }
+
+            processedChunks++;
+            const currentProgress = (processedChunks / totalChunks) * 100;
+            self.postMessage({ progress: currentProgress });
         }
     }
 

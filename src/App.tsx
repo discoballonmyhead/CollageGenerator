@@ -1,11 +1,10 @@
-// src/App.tsx
-
 import React, { useState } from 'react';
 import ImageUploader from './components/ImageUploader';
 import CanvasDisplay from './components/CanvasDisplay';
 import ResetButton from './components/ResetButton';
 import ChunkSizeSlider from './components/ChunkSizeSlider';
 import ImageScaleSlider from './components/ImageScaleSlider';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const App: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -37,39 +36,41 @@ const App: React.FC = () => {
   const isSliderDisabled = !imageFile || processing || mosaicReady;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-3xl bg-white rounded-lg shadow-md p-6 mx-4">
-        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
-          Image to Dota 2 Ability Icons Collage Generator
-        </h1>
-        {!imageFile ? (
-          <ImageUploader onImageUpload={handleImageUpload} />
-        ) : (
-          <>
-            <ImageScaleSlider
-              scaleFactor={scaleFactor}
-              onScaleFactorChange={setScaleFactor}
-              disabled={isSliderDisabled}
-            />
-            <ChunkSizeSlider
-              chunkSize={chunkSize}
-              onChunkSizeChange={setChunkSize}
-              disabled={isSliderDisabled}
-            />
-            <CanvasDisplay
-              imageFile={imageFile}
-              chunkSize={chunkSize}
-              scaleFactor={scaleFactor}
-              processing={processing}
-              mosaicReady={mosaicReady}
-              onProcessingChange={handleProcessingChange}
-              onMosaicReady={handleMosaicReady}
-            />
-            <ResetButton onReset={handleReset} />
-          </>
-        )}
+    <ErrorBoundary>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="w-full max-w-3xl bg-white rounded-lg shadow-md p-6 mx-4">
+          <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
+            Image to Dota 2 Ability Icons Collage Generator
+          </h1>
+          {!imageFile ? (
+            <ImageUploader onImageUpload={handleImageUpload} />
+          ) : (
+            <>
+              <ImageScaleSlider
+                scaleFactor={scaleFactor}
+                onScaleFactorChange={setScaleFactor}
+                disabled={isSliderDisabled}
+              />
+              <ChunkSizeSlider
+                chunkSize={chunkSize}
+                onChunkSizeChange={setChunkSize}
+                disabled={isSliderDisabled}
+              />
+              <CanvasDisplay
+                imageFile={imageFile}
+                chunkSize={chunkSize}
+                scaleFactor={scaleFactor}
+                processing={processing}
+                mosaicReady={mosaicReady}
+                onProcessingChange={handleProcessingChange}
+                onMosaicReady={handleMosaicReady}
+              />
+              <ResetButton onReset={handleReset} />
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 

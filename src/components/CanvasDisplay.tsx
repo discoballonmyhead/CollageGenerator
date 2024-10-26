@@ -1,11 +1,7 @@
-// src/components/CanvasDisplay.tsx
-
 import React, { useEffect, useRef, useState } from 'react';
 import { AssetImage } from '../types';
 import { loadAssetImages, loadImage } from '../utils/imageProcessing';
 import heic2any from 'heic2any';
-
-// Import the worker as a module
 import ImageProcessorWorker from '../workers/imageProcessor.worker.ts?worker';
 
 interface Props {
@@ -30,14 +26,12 @@ const CanvasDisplay: React.FC<Props> = ({
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [assets, setAssets] = useState<AssetImage[]>([]);
     const [uploadedImage, setUploadedImage] = useState<HTMLImageElement | null>(null);
+    const [progress, setProgress] = useState<number>(0);
 
     useEffect(() => {
-        // Preload assets on application load
         const preloadAssets = async () => {
             try {
                 const loadedAssets = await loadAssetImages();
-
-                // Assets are already loaded with bitmap in loadAssetImages
                 setAssets(loadedAssets);
             } catch (err) {
                 console.error('Error loading assets:', err);
@@ -49,9 +43,10 @@ const CanvasDisplay: React.FC<Props> = ({
 
     useEffect(() => {
         if (imageFile) {
-            // Reset states
+
             onMosaicReady(false);
             onProcessingChange(false);
+            setProgress(0);
 
             const loadAndDrawImage = async () => {
                 try {
@@ -86,12 +81,10 @@ const CanvasDisplay: React.FC<Props> = ({
         const canvas = canvasRef.current!;
         const ctx = canvas.getContext('2d')!;
 
-        // Apply scaling factor
         let scaledWidth = img.width * scaleFactor;
         let scaledHeight = img.height * scaleFactor;
 
-        // Limit the maximum dimensions
-        const maxDimension = 4096; // Adjust based on your requirements and testing
+        const maxDimension = 4096;
         if (scaledWidth > maxDimension || scaledHeight > maxDimension) {
             const scale = maxDimension / Math.max(scaledWidth, scaledHeight);
             scaledWidth *= scale;
@@ -116,7 +109,7 @@ const CanvasDisplay: React.FC<Props> = ({
         const canvas = canvasRef.current!;
         const { width, height } = canvas;
         const totalPixels = width * height;
-        const pixelThreshold = 10000000; // 10 million pixels
+        const pixelThreshold = 10000000;
 
         if (totalPixels > pixelThreshold) {
             const proceed = window.confirm(
@@ -128,16 +121,21 @@ const CanvasDisplay: React.FC<Props> = ({
         }
 
         onProcessingChange(true);
+        setProgress(0);
         const ctx = canvas.getContext('2d')!;
 
         const imageData = ctx.getImageData(0, 0, width, height);
 
-        // Initialize the worker
         const worker = new ImageProcessorWorker();
 
         worker.postMessage({ imageData, assets, chunkSize });
 
         worker.onmessage = (event: MessageEvent) => {
+            if (event.data.progress !== undefined) {
+                setProgress(event.data.progress);
+                return;
+            }
+
             const { processedImageData } = event.data;
             ctx.putImageData(processedImageData, 0, 0);
             onProcessingChange(false);
@@ -148,6 +146,9 @@ const CanvasDisplay: React.FC<Props> = ({
         worker.onerror = (error) => {
             console.error('Worker error:', error);
             onProcessingChange(false);
+            setProgress(0);
+            onMosaicReady(false);
+            alert('An error occurred while processing the image. Please try again.');
             worker.terminate();
         };
     };
@@ -175,8 +176,10 @@ const CanvasDisplay: React.FC<Props> = ({
                     className="border border-gray-300 w-full h-auto max-w-full"
                 />
                 {processing && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-75">
                         <p className="text-gray-700">Processing image...</p>
+                        <progress value={progress} max="100" className="mt-2 w-3/4" />
+                        <span className="mt-1 text-gray-600">{Math.round(progress)}%</span>
                     </div>
                 )}
             </div>
