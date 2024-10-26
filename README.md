@@ -13,4 +13,4 @@ An interactive web application that converts uploaded images into mosaics using 
 
 ## Demo
 
-[Live Demo Link](#) (https://collage-generator-inky.vercel.app/)
+[Live Demo Link](https://collage-generator-inky.vercel.app/)
