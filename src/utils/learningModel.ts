@@ -1,5 +1,5 @@
 import { RGB, colorDistance, histogramDistance } from './colorUtils';
-import { AssetImage } from './imageProcessing';
+import { AssetImage } from '../types';
 
 export function findBestMatch(
     targetColor: RGB,
