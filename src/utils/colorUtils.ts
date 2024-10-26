@@ -1,3 +1,5 @@
+// src/utils/colorUtils.ts
+
 export interface RGB {
     r: number;
     g: number;
@@ -42,8 +44,7 @@ export function colorDistance(c1: RGB, c2: RGB): number {
     );
 }
 
-
-export function computeHistogram(imageData: ImageData): number[] { // to understand the pixel histogram, undertanding the pixel shape// need to define this more in the future to work with the shape
+export function computeHistogram(imageData: ImageData): number[] {
     const { data } = imageData;
     const histogram = new Array(256).fill(0);
 
@@ -58,7 +59,6 @@ export function computeHistogram(imageData: ImageData): number[] { // to underst
 }
 
 export function histogramDistance(h1: number[], h2: number[]): number {
-    // Using chi-squared distance or any other suitable metric
     let distance = 0;
     for (let i = 0; i < h1.length; i++) {
         if (h1[i] + h2[i] !== 0) {

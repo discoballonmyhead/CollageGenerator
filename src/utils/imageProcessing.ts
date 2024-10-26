@@ -7,7 +7,7 @@ import { RGB, getAverageColor, computeHistogram } from './colorUtils';
 export function loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const img = new Image();
-        img.crossOrigin = 'Anonymous'; // To avoid CORS issues
+        img.crossOrigin = 'Anonymous';
         img.src = src;
         img.onload = () => resolve(img);
         img.onerror = () => reject(new Error(`Failed to load image: ${src}`));

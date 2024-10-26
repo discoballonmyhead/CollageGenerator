@@ -1,3 +1,5 @@
+// src/App.tsx
+
 import React, { useState } from 'react';
 import ImageUploader from './components/ImageUploader';
 import CanvasDisplay from './components/CanvasDisplay';

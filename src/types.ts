@@ -7,5 +7,5 @@ export interface AssetImage {
     averageColors: RGB[];
     histogram: number[];
     usageCount: number;
-    bitmap: ImageBitmap; // Added bitmap property
+    bitmap: ImageBitmap; // Essential for efficient processing in Web Workers
 }
