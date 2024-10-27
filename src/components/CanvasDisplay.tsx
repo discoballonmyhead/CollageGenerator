@@ -1,7 +1,7 @@
 // src/components/CanvasDisplay.tsx
 
 import React, { useEffect, useRef, useState } from 'react';
-import { AssetImage, AlgorithmType } from '../types';
+import { AssetImage, AlgorithmType, IconUsageMap } from '../types';
 import { loadAssetImages, loadImage } from '../utils/imageProcessing';
 import heic2any from 'heic2any';
 
@@ -16,8 +16,10 @@ interface Props {
     mosaicReady: boolean;
     algorithm: AlgorithmType;
     overlap: number;
+    showWatermark: boolean;
+    showIconUsageOverlay: boolean;
     onProcessingChange: (isProcessing: boolean) => void;
-    onMosaicReady: (isReady: boolean) => void;
+    onMosaicReady: (isReady: boolean, usage?: IconUsageMap) => void;
 }
 
 const CanvasDisplay: React.FC<Props> = ({
@@ -28,6 +30,8 @@ const CanvasDisplay: React.FC<Props> = ({
     mosaicReady,
     algorithm,
     overlap,
+    showWatermark,
+    showIconUsageOverlay,
     onProcessingChange,
     onMosaicReady,
 }) => {
@@ -35,6 +39,7 @@ const CanvasDisplay: React.FC<Props> = ({
     const [assets, setAssets] = useState<AssetImage[]>([]);
     const [uploadedImage, setUploadedImage] = useState<HTMLImageElement | null>(null);
     const [progress, setProgress] = useState<number>(0); // Define progress state
+    const [watermarkImage, setWatermarkImage] = useState<HTMLImageElement | null>(null);
 
     useEffect(() => {
         // Preload assets on application load
@@ -135,6 +140,7 @@ const CanvasDisplay: React.FC<Props> = ({
 
         onProcessingChange(true);
         setProgress(0); // Reset progress
+
         const ctx = canvas.getContext('2d')!;
 
         const imageData = ctx.getImageData(0, 0, width, height);
@@ -150,10 +156,25 @@ const CanvasDisplay: React.FC<Props> = ({
                 return;
             }
 
-            const { processedImageData } = event.data;
+            const { processedImageData, iconUsage: receivedIconUsage } = event.data as {
+                processedImageData: ImageData;
+                iconUsage: IconUsageMap;
+            };
+
+            // Draw the processed image
             ctx.putImageData(processedImageData, 0, 0);
+
+            // Draw overlays if enabled
+            if (showWatermark && watermarkImage) {
+                drawWatermark(ctx, width, height);
+            }
+
+            if (showIconUsageOverlay && Object.keys(receivedIconUsage).length > 0) {
+                drawIconUsageOverlay(ctx, receivedIconUsage, width);
+            }
+
             onProcessingChange(false);
-            onMosaicReady(true);
+            onMosaicReady(true, receivedIconUsage);
             worker.terminate();
         };
 
@@ -180,6 +201,66 @@ const CanvasDisplay: React.FC<Props> = ({
                 console.error('Failed to create blob for download.');
             }
         }, 'image/png');
+    };
+
+    // Load watermark image
+    useEffect(() => {
+        if (showWatermark) {
+            const loadWatermark = async () => {
+                try {
+                    const watermarkSrc = 'statelesslabsdota2.svg'; // Update with actual path
+                    const img = await loadImage(watermarkSrc);
+                    setWatermarkImage(img);
+                } catch (err) {
+                    console.error('Failed to load watermark image:', err);
+                }
+            };
+
+            loadWatermark();
+        } else {
+            setWatermarkImage(null);
+        }
+    }, [showWatermark]);
+
+    // Function to draw watermark
+    const drawWatermark = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+        if (!watermarkImage) return;
+
+        const watermarkWidth = 100; // Adjust as needed
+        const watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
+        const x = width - watermarkWidth - 10; // 10px from the right
+        const y = height - watermarkHeight - 10; // 10px from the bottom
+
+        ctx.globalAlpha = 0.75;
+        ctx.drawImage(watermarkImage, x, y, watermarkWidth, watermarkHeight);
+        ctx.globalAlpha = 1.0;
+    };
+
+    // Function to draw icon usage overlay
+    const drawIconUsageOverlay = (ctx: CanvasRenderingContext2D, usageMap: IconUsageMap, width: number) => {
+        const boxWidth = 200;
+        const boxHeight = Object.keys(usageMap).length * 20 + 10; // 10px padding
+
+        // Background box
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+        ctx.fillRect(width - boxWidth - 10, 10, boxWidth, boxHeight);
+
+        // Border
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.strokeRect(width - boxWidth - 10, 10, boxWidth, boxHeight);
+
+        // Text
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'left';
+
+        let yPosition = 25;
+        for (const [iconName, count] of Object.entries(usageMap)) {
+            if (count > 0) { // Omit icons with 0 usage
+                ctx.fillText(`${iconName}: ${count}`, width - boxWidth - 5, yPosition);
+                yPosition += 15;
+            }
+        }
     };
 
     return (

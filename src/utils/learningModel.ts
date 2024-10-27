@@ -34,9 +34,6 @@ export function findBestMatch(
             const colorDist = colorDistance(targetColor, assetColor);
             const histogramDist = histogramDistance(targetHistogram, asset.histogram);
             matchingScore += colorDist + histogramDist;
-
-            // Additional pattern matching logic can be implemented here
-            // For now, we'll keep it similar to HistogramMatch
         }
 
         if (algorithm === 'RotateMatch') {
@@ -58,6 +55,10 @@ export function findBestMatch(
             minScore = matchingScore;
             bestMatch = asset;
         }
+    }
+
+    if (bestMatch) {
+        bestMatch.usageCount += 1;
     }
 
     return bestMatch;

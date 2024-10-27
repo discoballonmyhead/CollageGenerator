@@ -2,7 +2,7 @@
 
 import { getAverageColor, computeHistogram } from '../utils/colorUtils';
 import { findBestMatch } from '../utils/learningModel';
-import type { AssetImage, AlgorithmType } from '../types';
+import type { AssetImage, AlgorithmType, IconUsageMap } from '../types';
 
 interface ProcessImageData {
     imageData: ImageData;
@@ -10,6 +10,11 @@ interface ProcessImageData {
     chunkSize: number;
     algorithm: AlgorithmType;
     overlap: number; // 0 (no overlap) to 70 (max overlap)
+}
+
+interface ProcessedResult {
+    processedImageData: ImageData;
+    iconUsage: IconUsageMap;
 }
 
 self.onmessage = async (event: MessageEvent) => {
@@ -96,5 +101,21 @@ self.onmessage = async (event: MessageEvent) => {
     }
 
     const processedImageData = ctx.getImageData(0, 0, width, height);
-    self.postMessage({ processedImageData }, [processedImageData.data.buffer]);
+
+    // Compile icon usage map
+    const iconUsage: IconUsageMap = {};
+    assets.forEach((asset) => {
+        const iconName = getIconNameFromSrc(asset.src);
+        iconUsage[iconName] = asset.usageCount;
+    });
+
+    const result: ProcessedResult = { processedImageData, iconUsage };
+    self.postMessage(result, [processedImageData.data.buffer]);
 };
+
+// Helper function to extract icon name from src URL
+function getIconNameFromSrc(src: string): string {
+    const parts = src.split('/');
+    const filename = parts[parts.length - 1];
+    return filename.split('.')[0]; // Remove extension
+}

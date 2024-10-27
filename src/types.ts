@@ -11,3 +11,6 @@ export interface AssetImage {
 }
 
 export type AlgorithmType = 'ColorMatch' | 'HistogramMatch' | 'PatternMatch' | 'RotateMatch';
+
+// Define IconUsageMap
+export type IconUsageMap = { [iconName: string]: number };
